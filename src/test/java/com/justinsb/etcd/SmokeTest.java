@@ -4,6 +4,8 @@ import java.net.URI;
 import java.util.Comparator;
 import java.util.List;
 import java.util.UUID;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
@@ -179,7 +181,11 @@ public class SmokeTest {
 			Assert.assertEquals(result.node.modifiedIndex,
 					watchResult.node.modifiedIndex);
 		}
+		
+		
+		
 	}
+	
 
 	@Test
 	public void testList() throws Exception {
@@ -234,7 +240,58 @@ public class SmokeTest {
 			Assert.assertEquals(true, child.dir);
 		}
 	}
+	
+	
+	
+	
+	ListenableFuture<EtcdResult> consistentWatchFuture; 	
+	@Test
+	public void testConsistentWatch() throws Exception{
+		String key = prefix + "/consistentWatch";
 
+		EtcdResult result = this.client.set(key + "/f1", "f1");
+		Assert.assertTrue(!result.isError());
+		Assert.assertNotNull(result.node);
+		Assert.assertEquals("f1", result.node.value);
+
+		
+		
+		
+		consistentWatchFuture = this.client.watch(key,
+				result.node.modifiedIndex + 1,
+				true);
+		
+		Runnable changeReaction = new Runnable(){
+			int count=1;
+			@Override
+			public void run() {
+                 count++;
+                 try {
+             		EtcdResult watchResult =consistentWatchFuture.get();
+             		Assert.assertEquals("f"+count, watchResult.node.value);
+                     consistentWatchFuture = client.watch(key,
+ 							watchResult.node.modifiedIndex + 1,
+ 							true);
+                     consistentWatchFuture.addListener(this , Executors.newFixedThreadPool(4));
+ 				} catch (Exception e) {
+ 					// TODO Auto-generated catch block
+ 					e.printStackTrace();
+ 				} 
+			}
+};
+		
+consistentWatchFuture.addListener(changeReaction , Executors.newFixedThreadPool(4));
+		
+			
+
+		result = this.client.set(key + "/f1", "f2");
+		Assert.assertTrue(!result.isError());
+					
+
+		result = this.client.set(key + "/f1", "f3");
+		Assert.assertTrue(!result.isError());
+	}
+	
 
 
 }
