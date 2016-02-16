@@ -3,3 +3,4 @@ external/
 .classpath
 .settings
 /target
+/bin/

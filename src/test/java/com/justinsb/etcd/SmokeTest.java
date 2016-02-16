@@ -1,6 +1,8 @@
 package com.justinsb.etcd;
 
 import java.net.URI;
+import java.util.Comparator;
+import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
@@ -197,37 +199,42 @@ public class SmokeTest {
 		EtcdResult listing = this.client.listChildren(key);
 		Assert.assertEquals(4, listing.node.nodes.size());
 		Assert.assertEquals("get", listing.action);
-
+		
+        List<EtcdNode> nodes = listing.node.nodes;
+		
+		nodes.sort(new Comparator<EtcdNode>(){
+			@Override
+			public int compare(EtcdNode o1, EtcdNode o2) {
+				return o1.key.compareToIgnoreCase(o2.key);
+				}
+		});
+		
 		{
-			EtcdNode child = listing.node.nodes.get(0);
+			EtcdNode child = nodes.get(0);
 			Assert.assertEquals(key + "/f1", child.key);
 			Assert.assertEquals("f1", child.value);
 			Assert.assertEquals(false, child.dir);
 		}
 		{
-			EtcdNode child = listing.node.nodes.get(1);
+			EtcdNode child = nodes.get(1);
 			Assert.assertEquals(key + "/f2", child.key);
 			Assert.assertEquals("f2", child.value);
 			Assert.assertEquals(false, child.dir);
 		}
 		{
-			EtcdNode child = listing.node.nodes.get(2);
+			EtcdNode child = nodes.get(2);
 			Assert.assertEquals(key + "/f3", child.key);
 			Assert.assertEquals("f3", child.value);
 			Assert.assertEquals(false, child.dir);
 		}
 		{
-			EtcdNode child = listing.node.nodes.get(3);
+			EtcdNode child = nodes.get(3);
 			Assert.assertEquals(key + "/subdir1", child.key);
 			Assert.assertEquals(null, child.value);
 			Assert.assertEquals(true, child.dir);
 		}
 	}
 
-	@Test
-	public void testGetVersion() throws Exception {
-		String version = this.client.getVersion();
-		Assert.assertTrue(version.startsWith("etcd 0."));
-	}
+
 
 }
